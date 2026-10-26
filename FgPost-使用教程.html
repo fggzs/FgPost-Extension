@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FgPost 浏览器扩展使用教程</title>
+    <style>
+      :root {
+        --text: #1f2328;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --brand: #2563eb;
+        --bg: #f7f8fa;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 40px 20px 80px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        line-height: 1.75;
+        font-size: 15px;
+      }
+      .page {
+        max-width: 820px;
+        margin: 0 auto;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 44px 48px 56px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+      }
+      h1 {
+        font-size: 27px;
+        margin: 0 0 6px;
+        letter-spacing: 0.5px;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 13.5px;
+        margin-bottom: 34px;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 42px 0 14px;
+        padding-left: 11px;
+        border-left: 4px solid var(--brand);
+        line-height: 1.3;
+      }
+      h3 {
+        font-size: 15.5px;
+        margin: 24px 0 8px;
+      }
+      p {
+        margin: 10px 0;
+      }
+      ol,
+      ul {
+        padding-left: 22px;
+        margin: 10px 0;
+      }
+      li {
+        margin: 7px 0;
+      }
+      code {
+        background: #f2f4f7;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 1px 6px;
+        font-size: 13px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      .tip {
+        background: #f0f6ff;
+        border: 1px solid #d6e4ff;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin: 16px 0;
+        font-size: 14px;
+      }
+      .warn {
+        background: #fff8ed;
+        border: 1px solid #ffe0b8;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin: 16px 0;
+        font-size: 14px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 14px 0;
+        font-size: 14px;
+      }
+      th,
+      td {
+        border: 1px solid var(--line);
+        padding: 9px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #fafbfc;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .step {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--brand);
+        color: #fff;
+        font-size: 12.5px;
+        font-weight: 600;
+        margin-right: 8px;
+        flex: none;
+      }
+      .kv {
+        color: var(--muted);
+        font-size: 13.5px;
+      }
+      .footer {
+        margin-top: 46px;
+        padding-top: 18px;
+        border-top: 1px dashed var(--line);
+        color: var(--muted);
+        font-size: 13px;
+      }
+      @media print {
+        body {
+          background: #fff;
+          padding: 0;
+        }
+        .page {
+          border: none;
+          box-shadow: none;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>FgPost 浏览器扩展使用教程</h1>
+      <div class="sub">适用版本：v1.5.3 · 支持 Chrome、Edge 等 Chromium 内核浏览器</div>
+
+      <p>
+        FgPost 是一款「一次编辑、多平台发布」的浏览器扩展。你在扩展里选好图片或视频、填好文案，它会把内容分别带到各平台的创作页并自动填充，
+        省去一个个平台重复上传的麻烦。
+      </p>
+
+      <h2>一、安装扩展</h2>
+
+      <h3><span class="step">1</span>解压安装包</h3>
+      <p>
+        把下载到的 <code>FgPost-Extension-1.5.3.zip</code> 解压到一个固定的文件夹，例如
+        <code>D:\FgPost</code>。<strong>解压出来的文件夹不要删除、不要改名</strong>，浏览器会直接从这个目录加载扩展。
+      </p>
+
+      <h3><span class="step">2</span>打开扩展管理页</h3>
+      <p>在浏览器地址栏输入下面其中一个地址并回车：</p>
+      <ul>
+        <li>Chrome：<code>chrome://extensions</code></li>
+        <li>Edge：<code>edge://extensions</code></li>
+      </ul>
+
+      <h3><span class="step">3</span>打开开发者模式</h3>
+      <p>页面右上角有一个「开发者模式」开关，把它打开。</p>
+
+      <h3><span class="step">4</span>加载扩展</h3>
+      <p>
+        点击左上角出现的「加载已解压的扩展程序」，选择第 1 步解压出来的
+        <strong>文件夹</strong>（不是 zip 文件本身），确认即可。
+      </p>
+
+      <h3><span class="step">5</span>固定到工具栏</h3>
+      <p>点击浏览器右上角的拼图图标，把 FgPost 后面的图钉点亮，方便随时打开。</p>
+
+      <div class="tip">
+        安装过程中浏览器会提示需要「读取和更改您访问的网站上的数据」等权限，这是扩展在目标平台页面自动填充内容所必需的，请点击允许/添加。
+      </div>
+
+      <h2>二、登录账号</h2>
+      <p>点击工具栏上的 FgPost 图标，会直接在新标签页打开操作页面。首次使用需要先登录：</p>
+      <ol>
+        <li>进入顶部「我的」标签页</li>
+        <li>选择「登录」或「注册」</li>
+        <li>填写账号（手机号或用户名）和密码，点击「登录」或「注册并登录」</li>
+      </ol>
+      <p class="kv">
+        登录成功后，「我的」标签会显示你的账号名，右下角会出现「退出登录」按钮。账号状态异常（如会员到期）时，页面顶部会给出对应提示。
+      </p>
+
+      <div class="warn">
+        未登录时点击「开始发布」不会执行任何发布操作，页面会提示「未登录，请先登录后再发布」并自动跳到「我的」页。
+      </div>
+
+      <h2>三、发布内容</h2>
+
+      <h3>1. 选择内容类型</h3>
+      <p>发布页顶部有两个卡片：</p>
+      <table>
+        <tr>
+          <th>类型</th>
+          <th>说明</th>
+        </tr>
+        <tr>
+          <td>图文动态</td>
+          <td>标题 + 正文 + 多张本地图片</td>
+        </tr>
+        <tr>
+          <td>视频</td>
+          <td>标题 + 简介（可留空）+ 一个本地视频文件</td>
+        </tr>
+      </table>
+
+      <h3>2. 选择发布平台</h3>
+      <p>
+        在「发布平台」区域点选要发布的平台，也可以点右侧的「全选」。平台名后面的圆点含义：
+      </p>
+      <ul>
+        <li><strong>绿点</strong>：检测到该平台当前是登录状态，可以直接发布</li>
+        <li><strong>灰点</strong>：没有检测到登录状态，仍然可以勾选，但打开发布页后需要你先手动登录该平台</li>
+      </ul>
+
+      <h3>3. 填写内容</h3>
+      <ul>
+        <li><strong>标题</strong>：必填</li>
+        <li><strong>正文 / 简介</strong>：图文动态为必填；视频的简介可留空</li>
+        <li><strong>图片</strong>：点击选择本地图片，可一次多选，缩略图右上角的 × 可以移除单张</li>
+        <li><strong>视频</strong>：点击选择本地视频文件，选中后显示文件名和大小，可点「移除」重选</li>
+      </ul>
+
+      <h3>4. 开始发布</h3>
+      <p>
+        点击「开始发布」，扩展会先校验登录状态，然后弹出「发布进度」窗口，同时按平台逐个打开创作页面并自动填入内容。
+        发布窗口会列出每个平台的处理状态，失败原因也会显示在里面。
+      </p>
+
+      <div class="tip">
+        各平台首次使用时需要你先在该平台的创作页登录一次，之后浏览器会保持登录状态，后续发布就不用重复登录了。
+      </div>
+
+      <h2>四、账号状态管理</h2>
+      <ul>
+        <li>顶部「刷新账号」或「账号」页里的「刷新全部账号状态」：重新检测各平台登录状态</li>
+        <li>「账号」页会列出已检测到登录的平台及其账号名</li>
+        <li>检测不准确的平台，可以在对应网页登录后，再点一次刷新</li>
+      </ul>
+
+      <h2>五、文件大小限制</h2>
+      <table>
+        <tr>
+          <th>类型</th>
+          <th>限制</th>
+        </tr>
+        <tr>
+          <td>图片</td>
+          <td>单张不超过 20 MB，一次合计不超过 200 MB</td>
+        </tr>
+        <tr>
+          <td>视频</td>
+          <td>不超过 1 GB</td>
+        </tr>
+      </table>
+      <p class="kv">
+        文件保存在浏览器本地，发布时按块传给各平台页面。文件越大，发布前的准备时间越长：几百 MB 的视频，每个平台都需要额外准备一段时间，属于正常现象，请耐心等待进度条走完，不要关闭页面。
+      </p>
+
+      <h2>六、常见问题</h2>
+
+      <h3>Q1：点击发布没有任何反应？</h3>
+      <p>
+        先确认是否已登录。未登录时会自动跳到「我的」页并提示。已登录但一直停在「正在校验发布权限…」，
+        多为网络问题，请检查网络后重试。
+      </p>
+
+      <h3>Q2：提示「当前版本不可用，请更新最新版本」？</h3>
+      <p>说明你手上的扩展版本过旧，请下载最新安装包重新加载扩展。</p>
+
+      <h3>Q3：提示「用户名或密码错误」？</h3>
+      <p>账号为手机号或用户名，请检查大小写和空格；忘记密码请联系管理员重置。</p>
+
+      <h3>Q4：平台页面打开了，但内容没自动填上？</h3>
+      <p>常见原因有三个：</p>
+      <ol>
+        <li>该平台未登录，页面停在登录界面</li>
+        <li>平台页面改版，扩展的填充规则尚未适配</li>
+        <li>页面加载较慢，可以等几秒或刷新该平台页面重新触发</li>
+      </ol>
+      <p>可以先在发布窗口里点该平台对应的「重新加载」按钮重试。</p>
+
+      <h3>Q5：发布到一半关掉了窗口？</h3>
+      <p>已经打开的创作页不会被关闭，你可以在那些页面里手动完成剩余的发布操作。</p>
+
+      <h3>Q6：如何更新扩展？</h3>
+      <ol>
+        <li>下载新版安装包，解压并<strong>覆盖</strong>到原来的文件夹</li>
+        <li>打开 <code>chrome://extensions</code>，找到 FgPost，点击「重新加载」图标</li>
+        <li>刷新已经打开的扩展页面即可生效</li>
+      </ol>
+
+      <h3>Q7：如何卸载？</h3>
+      <p>在 <code>chrome://extensions</code> 里点击 FgPost 卡片上的「移除」，然后删除本地文件夹即可。</p>
+
+      <div class="footer">
+        FgPost v1.5.3 · 本文档随扩展一起更新，如有疑问请联系管理员。
+      </div>
+    </div>
+  </body>
+</html>
