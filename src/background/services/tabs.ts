@@ -1,4 +1,5 @@
 import { type SyncData, type SyncDataPlatform, injectScriptsToTabs } from "~sync/common";
+import { ensureAuthorized } from "./feiniao";
 
 // Tab Manager || 标签页管理 || START
 export interface TabManagerMessage {
@@ -38,21 +39,28 @@ export const tabsManagerHandleTabRemoved = handleTabRemoved;
 
 export const tabsManagerMessageHandler = (request, _sender, sendResponse) => {
   if (request.type === "MULTIPOST_EXTENSION_REQUEST_PUBLISH_RELOAD") {
-    const { tabId } = request.data;
-    const info = tabsManagerMessages.find((group) => group.tabs.some((t) => t.tab.id === tabId));
-    const tabInfo = info?.tabs.find((t) => t.tab.id === tabId);
+    (async () => {
+      const auth = await ensureAuthorized();
+      if (!auth.ok) {
+        sendResponse({ error: "NOT_AUTHORIZED", message: auth.message });
+        return;
+      }
+      const { tabId } = request.data;
+      const info = tabsManagerMessages.find((group) => group.tabs.some((t) => t.tab.id === tabId));
+      const tabInfo = info?.tabs.find((t) => t.tab.id === tabId);
 
-    if (tabInfo) {
-      chrome.tabs.update(tabId, { url: tabInfo.platformInfo.injectUrl, active: true }).then(() => {
-        injectScriptsToTabs([{ tab: tabInfo.tab, platformInfo: tabInfo.platformInfo }], info.syncData);
-      });
-    } else {
-      console.error(`未找到标签页 ID ${tabId} 的信息`);
-      sendResponse("error");
-      return true;
-    }
+      if (tabInfo) {
+        chrome.tabs.update(tabId, { url: tabInfo.platformInfo.injectUrl, active: true }).then(() => {
+          injectScriptsToTabs([{ tab: tabInfo.tab, platformInfo: tabInfo.platformInfo }], info.syncData);
+        });
+      } else {
+        console.error(`未找到标签页 ID ${tabId} 的信息`);
+        sendResponse("error");
+        return;
+      }
 
-    sendResponse("success");
+      sendResponse("success");
+    })();
     return true;
   }
   if (request.type === "MULTIPOST_EXTENSION_TABS_MANAGER_REQUEST_TABS") {
@@ -60,15 +68,22 @@ export const tabsManagerMessageHandler = (request, _sender, sendResponse) => {
     return true;
   }
   if (request.type === "MULTIPOST_EXTENSION_TABS_MANAGER_REQUEST_ADD_TABS") {
-    const { data, tabs } = request;
-    addTabsManagerMessages({
-      syncData: data,
-      tabs: tabs.map((t: { tab: chrome.tabs.Tab; platformInfo: SyncDataPlatform }) => ({
-        tab: t.tab,
-        platformInfo: t.platformInfo,
-      })),
-    });
-    sendResponse("success");
+    (async () => {
+      const auth = await ensureAuthorized();
+      if (!auth.ok) {
+        sendResponse({ error: "NOT_AUTHORIZED", message: auth.message });
+        return;
+      }
+      const { data, tabs } = request;
+      addTabsManagerMessages({
+        syncData: data,
+        tabs: tabs.map((t: { tab: chrome.tabs.Tab; platformInfo: SyncDataPlatform }) => ({
+          tab: t.tab,
+          platformInfo: t.platformInfo,
+        })),
+      });
+      sendResponse("success");
+    })();
     return true;
   }
   return false;

@@ -1,14 +1,16 @@
 <div align="center">
-<img src="https://github.com/user-attachments/assets/b30c6c81-9c8b-4c78-a2df-9266b84b6f14" width="200" height="200" alt="MultiPost Logo" />
+<img src="https://github.com/user-attachments/assets/b30c6c81-9c8b-4c78-a2df-9266b84b6f14" width="200" height="200" alt="FgPost Logo" />
 
-# MultiPost
+# FgPost
 
-![GitHub License GitHub许可证](https://img.shields.io/github/license/leaper-one/MultiPost-Extension) ![GitHub Repo stars GitHub星星](https://img.shields.io/github/stars/leaper-one/MultiPost-Extension) ![GitHub commit activity GitHub提交活动](https://img.shields.io/github/commit-activity/m/leaper-one/MultiPost-Extension) [![Website 网站](https://img.shields.io/website?url=https%3A%2F%2Fmultipost.app)](https://multipost.app) [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/leaperone/MultiPost-Extension)
+![GitHub License GitHub许可证](https://img.shields.io/github/license/fggzs/FgPost-Extension) ![GitHub Repo stars GitHub星星](https://img.shields.io/github/stars/fggzs/FgPost-Extension) ![GitHub commit activity GitHub提交活动](https://img.shields.io/github/commit-activity/m/fggzs/FgPost-Extension) [![Website 网站](https://img.shields.io/website?url=https%3A%2F%2Fmultipost.app)](https://multipost.app) [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/leaperone/MultiPost-Extension)
 
 [English](README.md) | [中文](docs/README-zh.md) | [日本語](docs/README-jp.md) | [Français](docs/README-fr.md) | [한국어](docs/README-kr.md)
 
 > A browser extension that helps users publish content to multiple social media platforms with one click.
 > 一个用于在多个社交平台上发布内容的浏览器扩展。
+>
+> 本项目基于 [MultiPost](https://github.com/leaperone/MultiPost-Extension)（Apache-2.0）二次开发，品牌与 UI 已定制为 FgPost。
 
 ⭐ If you find this project helpful, please consider giving it a star! Your support helps us grow and improve! ⭐
 </div>

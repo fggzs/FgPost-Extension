@@ -54,7 +54,7 @@ function TabsManager() {
     <section className="mx-auto max-w-2xl p-4">
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-default-500">MultiPost</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-default-500">FgPost</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {chrome.i18n.getMessage("sidepanelTabsManager")}
           </h1>

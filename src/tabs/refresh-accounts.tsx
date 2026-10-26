@@ -102,7 +102,7 @@ const RefreshAccounts = () => {
   }, []);
 
   useEffect(() => {
-    document.title = `${chrome.i18n.getMessage("refreshAccountsTitle")} - MultiPost`;
+    document.title = `${chrome.i18n.getMessage("refreshAccountsTitle")} - FgPost`;
     refreshAccounts();
   }, [refreshAccounts]);
 

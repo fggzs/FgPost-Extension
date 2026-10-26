@@ -1,4 +1,4 @@
-# MultiPost
+# FgPost
 
 ![GitHub License Licence GitHub](https://img.shields.io/github/license/leaper-one/MultiPost-Extension) ![GitHub Repo stars Étoiles GitHub](https://img.shields.io/github/stars/leaper-one/MultiPost-Extension) ![GitHub commit activity Activité des commits GitHub](https://img.shields.io/github/commit-activity/m/leaper-one/MultiPost-Extension) [![Website Site web](https://img.shields.io/website?url=https%3A%2F%2Fmultipost.app)](https://multipost.app)
 

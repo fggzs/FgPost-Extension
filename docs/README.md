@@ -1,4 +1,4 @@
-# MultiPost Extension 文档中心
+# FgPost 文档中心
 
 <div align="center">
 

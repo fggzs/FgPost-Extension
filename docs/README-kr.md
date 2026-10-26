@@ -1,4 +1,4 @@
-# MultiPost
+# FgPost
 
 ![GitHub License GitHub 라이선스](https://img.shields.io/github/license/leaper-one/MultiPost-Extension) ![GitHub Repo stars GitHub 스타](https://img.shields.io/github/stars/leaper-one/MultiPost-Extension) ![GitHub commit activity GitHub 커밋 활동](https://img.shields.io/github/commit-activity/m/leaper-one/MultiPost-Extension) [![Website 웹사이트](https://img.shields.io/website?url=https%3A%2F%2Fmultipost.app)](https://multipost.app)
 

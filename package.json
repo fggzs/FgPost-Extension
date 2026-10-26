@@ -1,9 +1,9 @@
 {
   "name": "__MSG_extensionName__",
   "displayName": "__MSG_extensionDisplayName__",
-  "version": "1.5.1",
+  "version": "1.5.3",
   "description": "__MSG_extensionDescription__",
-  "author": "leaperone",
+  "author": "fggzs",
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build && plasmo package",
@@ -72,10 +72,19 @@
   "manifest": {
     "default_locale": "zh_CN",
     "externally_connectable": {
-      "matches": ["https://paiban.md/*", "http://localhost:2663/*"]
+      "matches": ["https://paiban.md/*"]
     },
-    "host_permissions": ["https://*/*"],
-    "permissions": ["activeTab", "tabs", "scripting", "tabGroups", "sidePanel", "clipboardWrite", "clipboardRead"],
+    "host_permissions": ["https://*/*", "http://fnyz.aiwenshu.top/*"],
+    "permissions": [
+      "activeTab",
+      "tabs",
+      "scripting",
+      "tabGroups",
+      "sidePanel",
+      "cookies",
+      "clipboardWrite",
+      "clipboardRead"
+    ],
     "web_accessible_resources": [
       {
         "resources": ["assets/icon.png"],

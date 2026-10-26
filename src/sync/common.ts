@@ -2,6 +2,7 @@ import { getAccountInfoFromPlatformInfo, getAccountInfoFromPlatformInfos } from 
 import { ArticleInfoMap } from "./article";
 import { DynamicInfoMap } from "./dynamic";
 import { getExtraConfigFromPlatformInfo, getExtraConfigFromPlatformInfos } from "./extraconfig";
+import { isPlatformEnabled } from "./platform-filter";
 import { PodcastInfoMap } from "./podcast";
 import { VideoInfoMap } from "./video";
 
@@ -103,12 +104,17 @@ export interface AccountInfo {
   extraData: unknown;
 }
 
-export const infoMap: Record<string, PlatformInfo> = {
+const allInfoMap: Record<string, PlatformInfo> = {
   ...DynamicInfoMap,
   ...ArticleInfoMap,
   ...VideoInfoMap,
   ...PodcastInfoMap,
 };
+
+// 只对外暴露白名单内的平台，其余平台在界面和注入链路上都不可见
+export const infoMap: Record<string, PlatformInfo> = Object.fromEntries(
+  Object.entries(allInfoMap).filter(([name]) => isPlatformEnabled(name)),
+);
 
 export async function getPlatformInfo(platform: string): Promise<PlatformInfo | null> {
   const platformInfo = infoMap[platform];
@@ -139,7 +145,8 @@ export async function createTabsForPlatforms(data: SyncData) {
 
   for (const info of data.platforms) {
     let tab: chrome.tabs.Tab | null = null;
-    if (info) {
+    // 未启用的平台直接跳过，避免外部消息硬编码平台名绕过白名单
+    if (info && isPlatformEnabled(info.name)) {
       const extraConfig = info.extraConfig as { customInjectUrls?: string[] };
       if (extraConfig?.customInjectUrls && extraConfig.customInjectUrls.length > 0) {
         for (const url of extraConfig.customInjectUrls) {
@@ -178,7 +185,7 @@ export async function createTabsForPlatforms(data: SyncData) {
             groupId = await chrome.tabs.group({ tabIds: [tab.id!] });
             await chrome.tabGroups.update(groupId, {
               color: "blue",
-              title: `MultiPost-${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`,
+              title: `FgPost-${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`,
             });
           } else {
             // 将新标签页添加到现有组中

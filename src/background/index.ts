@@ -9,6 +9,7 @@ import {
 } from "~sync/common";
 import QuantumEntanglementKeepAlive from "../utils/keep-alive";
 import { linkExtensionMessageHandler, starter } from "./services/api";
+import { ensureAuthorized, feiniaoMessageHandler } from "./services/feiniao";
 import {
   addTabsManagerMessages,
   tabsManagerHandleTabRemoved,
@@ -35,10 +36,15 @@ async function initDefaultTrustedDomains() {
 
 chrome.runtime.onInstalled.addListener((object) => {
   if (object.reason === chrome.runtime.OnInstalledReason.INSTALL) {
-    chrome.tabs.create({ url: "https://multipost.app/on-install" });
+    chrome.runtime.openOptionsPage();
   }
   initDefaultTrustedDomains();
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+});
+
+// 没有 popup 时，点击扩展图标直接打开完整操作页面
+chrome.action.onClicked.addListener(() => {
+  void chrome.runtime.openOptionsPage();
 });
 
 // Listen Message || 监听消息 || START
@@ -47,6 +53,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     defaultMessageHandler(request, sender, sendResponse) ||
     tabsManagerMessageHandler(request, sender, sendResponse) ||
     trustDomainMessageHandler(request, sender, sendResponse) ||
+    feiniaoMessageHandler(request, sender, sendResponse) ||
     linkExtensionMessageHandler(request, sender, sendResponse);
   return handled;
 });
@@ -71,10 +78,15 @@ const defaultMessageHandler = (request, _sender, sendResponse) => {
     return true;
   }
   if (request.action === "MULTIPOST_EXTENSION_PUBLISH") {
-    const data = request.data as SyncData;
-    currentSyncData = data;
-    sendResponse({ status: "received", extensionId: chrome.runtime.id });
     (async () => {
+      const auth = await ensureAuthorized();
+      if (!auth.ok) {
+        sendResponse({ error: "NOT_AUTHORIZED", message: auth.message });
+        return;
+      }
+      const data = request.data as SyncData;
+      currentSyncData = data;
+      sendResponse({ status: "received", extensionId: chrome.runtime.id });
       currentPublishPopup = await chrome.windows.create({
         url: chrome.runtime.getURL("tabs/publish.html"),
         type: "popup",
@@ -125,47 +137,52 @@ const defaultMessageHandler = (request, _sender, sendResponse) => {
     return true;
   }
   if (request.action === "MULTIPOST_EXTENSION_PUBLISH_NOW") {
-    const data = request.data as SyncData;
-    if (Array.isArray(data.platforms) && data.platforms.length > 0) {
-      (async () => {
-        try {
-          const tabs = await createTabsForPlatforms(data);
-          // await injectScriptsToTabs(tabs, data);
+    (async () => {
+      const auth = await ensureAuthorized();
+      if (!auth.ok) {
+        sendResponse({ error: "NOT_AUTHORIZED", message: auth.message });
+        return;
+      }
+      const data = request.data as SyncData;
+      if (!Array.isArray(data?.platforms) || data.platforms.length === 0) {
+        sendResponse({ tabs: [] });
+        return;
+      }
+      try {
+        const tabs = await createTabsForPlatforms(data);
+        // await injectScriptsToTabs(tabs, data);
 
-          addTabsManagerMessages({
-            syncData: data,
-            tabs: tabs.map((t: { tab: chrome.tabs.Tab; platformInfo: SyncDataPlatform }) => ({
-              tab: t.tab,
-              platformInfo: t.platformInfo,
-            })),
-          });
+        addTabsManagerMessages({
+          syncData: data,
+          tabs: tabs.map((t: { tab: chrome.tabs.Tab; platformInfo: SyncDataPlatform }) => ({
+            tab: t.tab,
+            platformInfo: t.platformInfo,
+          })),
+        });
 
-          // for (const t of tabs) {
-          //   if (t.tab.id) {
-          //     await chrome.tabs.update(t.tab.id, { active: true });
-          //     await new Promise((resolve) => setTimeout(resolve, 2000));
-          //   }
-          // }
-          if (currentPublishPopup) {
-            await chrome.windows.update(currentPublishPopup.id, { focused: true });
-          }
-
-          sendResponse({
-            tabs: tabs.map((t: { tab: chrome.tabs.Tab; platformInfo: SyncDataPlatform }) => ({
-              tab: t.tab,
-              platformInfo: t.platformInfo,
-            })),
-          });
-        } catch (error) {
-          // Do not sendResponse here: the publish popup's handlePublishComplete treats ANY
-          // callback response as "publish complete", so an error payload would be mis-read as success.
-          // Preserve original behavior (log only); success path above sends the tabs response.
-          console.error("创建标签页或分组时出错:", error);
+        // for (const t of tabs) {
+        //   if (t.tab.id) {
+        //     await chrome.tabs.update(t.tab.id, { active: true });
+        //     await new Promise((resolve) => setTimeout(resolve, 2000));
+        //   }
+        // }
+        if (currentPublishPopup) {
+          await chrome.windows.update(currentPublishPopup.id, { focused: true });
         }
-      })();
-    }
-    // Claim this action regardless of platform count, mirroring the original blanket return-true:
-    // the success path responds asynchronously; error/empty paths intentionally send no response.
+
+        sendResponse({
+          tabs: tabs.map((t: { tab: chrome.tabs.Tab; platformInfo: SyncDataPlatform }) => ({
+            tab: t.tab,
+            platformInfo: t.platformInfo,
+          })),
+        });
+      } catch (error) {
+        // Do not sendResponse here: the publish popup's handlePublishComplete treats ANY
+        // callback response as "publish complete", so an error payload would be mis-read as success.
+        // Preserve original behavior (log only); success path above sends the tabs response.
+        console.error("创建标签页或分组时出错:", error);
+      }
+    })();
     return true;
   }
   return false;

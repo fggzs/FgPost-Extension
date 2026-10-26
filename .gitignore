@@ -33,3 +33,7 @@ yarn-error.log*
 next-env.d.ts
 
 .idea/
+# crx 打包产物
+*.crx
+*.py
+*.zip

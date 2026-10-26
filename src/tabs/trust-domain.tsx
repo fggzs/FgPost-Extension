@@ -36,7 +36,7 @@ const TrustDomain = () => {
   const storage = new Storage({ area: "local" });
 
   useEffect(() => {
-    document.title = `${chrome.i18n.getMessage("optionsTitle")} - MultiPost`;
+    document.title = `${chrome.i18n.getMessage("optionsTitle")} - FgPost`;
     try {
       // 获取 hash 部分（移除开头的 #）
       const encodedParams = window.location.hash.substring(1);

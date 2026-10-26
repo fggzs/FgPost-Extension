@@ -6,6 +6,7 @@ import { getChejiahaoAccountInfo } from "./account/chejiahao";
 import { getDayuAccountInfo } from "./account/dayu";
 import { getDewuAccountInfo } from "./account/dewu";
 import { getDouyinAccountInfo } from "./account/douyin";
+import { getKuaishouAccountInfo } from "./account/kuaishou";
 import { getNeteaseAccountInfo } from "./account/netease";
 import { getPinduoduoAccountInfo } from "./account/pinduoduo";
 import { getQiEAccountInfo } from "./account/qie";
@@ -13,10 +14,12 @@ import { getRednoteAccountInfo } from "./account/rednote";
 import { getSohuAccountInfo } from "./account/sohu";
 import { getTiktokAccountInfo } from "./account/tiktok";
 import { getVivoVideoAccountInfo } from "./account/vivovideo";
+import { getWeixinChannelAccountInfo } from "./account/weixinchannel";
 import { getXAccountInfo } from "./account/x";
 import { getYicheAccountInfo } from "./account/yiche";
 import { getYidianAccountInfo } from "./account/yidian";
 import { type AccountInfo, type PlatformInfo, getPlatformInfos } from "./common";
+import { isAccountEnabled } from "./platform-filter";
 
 // 存储账号信息的键名
 export const ACCOUNT_INFO_STORAGE_KEY = "multipost_account_info";
@@ -26,7 +29,7 @@ const storage = new Storage({
   area: "local",
 });
 
-export const refreshAccountInfoMap: Record<
+const allRefreshAccountInfoMap: Record<
   string,
   {
     platformName: string;
@@ -70,6 +73,20 @@ export const refreshAccountInfoMap: Record<
     homeUrl: "https://t.bilibili.com",
     faviconUrl: "https://static.hdslb.com/images/favicon.ico",
     getAccountInfo: getBilibiliAccountInfo,
+  },
+  kuaishou: {
+    platformName: chrome.i18n.getMessage("platformKuaishou"),
+    accountKey: "kuaishou",
+    homeUrl: "https://cp.kuaishou.com",
+    faviconUrl: "https://www.kuaishou.com/favicon.ico",
+    getAccountInfo: getKuaishouAccountInfo,
+  },
+  weixinchannel: {
+    platformName: chrome.i18n.getMessage("platformWeiXinVideo"),
+    accountKey: "weixinchannel",
+    homeUrl: "https://channels.weixin.qq.com/platform",
+    faviconUrl: "https://res.wx.qq.com/t/wx_fed/finder/helper/finder-helper-web/res/favicon-v2.ico",
+    getAccountInfo: getWeixinChannelAccountInfo,
   },
   qie: {
     platformName: chrome.i18n.getMessage("platformQiE"),
@@ -150,6 +167,11 @@ export const refreshAccountInfoMap: Record<
   },
 };
 
+// 只保留白名单内的账号刷新处理器，隐藏平台的账号不会出现在刷新列表里
+export const refreshAccountInfoMap: typeof allRefreshAccountInfoMap = Object.fromEntries(
+  Object.entries(allRefreshAccountInfoMap).filter(([key]) => isAccountEnabled(key)),
+) as typeof allRefreshAccountInfoMap;
+
 /**
  * 获取指定平台账号的最新信息
  * @param accountKey 账号标识符
@@ -165,8 +187,9 @@ export async function refreshAccountInfo(accountKey: string): Promise<AccountInf
   const refreshInfo = refreshAccountInfoMap[accountKey];
   if (!refreshInfo) {
     console.debug(`No account refresh handler for grouping-only account key: ${accountKey}`);
-    await removeAccountInfo(accountKey);
-    return null;
+    // 没有检测实现时保留已有账号记录，避免刷新后把已登录账号清空
+    const cached = (await storage.get<Record<string, AccountInfo>>(ACCOUNT_INFO_STORAGE_KEY)) || {};
+    return cached[accountKey] ?? null;
   }
 
   const accountInfo = await refreshInfo.getAccountInfo();

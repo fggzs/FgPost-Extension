@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "MultiPost",
-    "description": "Multipost Extension"
+    "message": "FgPost",
+    "description": "FgPost Extension"
   },
   "extensionDisplayName": {
-    "message": "MultiPost",
-    "description": "Multipost Extension"
+    "message": "FgPost",
+    "description": "FgPost Extension"
   },
   "extensionDescription": {
-    "message": "MultiPost is a tool to help you sync and publish content across multiple platforms.",
-    "description": "MultiPost is a tool to help you sync and publish content across multiple platforms."
+    "message": "FgPost is a tool to help you sync and publish content across multiple platforms.",
+    "description": "FgPost is a tool to help you sync and publish content across multiple platforms."
   },
   "gDynamic": {
     "message": "Dynamic",
@@ -56,7 +56,7 @@
     "description": "Default nickname text"
   },
   "optionsTitle": {
-    "message": "Multipost",
+    "message": "FgPost",
     "description": "Options page title"
   },
   "optionsViewDocs": {
@@ -180,8 +180,8 @@
     "description": "Sync button failed state text"
   },
   "optionsLogin2SOMEren": {
-    "message": "Please login to Multipost",
-    "description": "Login to Multipost prompt"
+    "message": "Please login to FgPost",
+    "description": "Login to FgPost prompt"
   },
   "optionsNotBoundBilibili": {
     "message": "Not Bound to Bilibili",
@@ -585,7 +585,7 @@
     "description": "Button text to clear all selected platforms"
   },
   "aboutDescription": {
-    "message": "MultiPost Extension helps you publish content to multiple platforms simultaneously, improving your content distribution efficiency."
+    "message": "FgPost Extension helps you publish content to multiple platforms simultaneously, improving your content distribution efficiency."
   },
   "gAbout": {
     "message": "About"
@@ -827,7 +827,7 @@
     "message": "Error processing request"
   },
   "popupLogoAlt": {
-    "message": "MultiPost Icon",
+    "message": "FgPost Icon",
     "description": "Alt text for the logo image"
   },
   "popupLoadingMessage": {

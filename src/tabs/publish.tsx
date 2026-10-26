@@ -487,9 +487,17 @@ export default function Publish() {
 
   // 发布完成后的处理逻辑
   const handlePublishComplete = async (response: {
+    error?: string;
+    message?: string;
     tabs?: Array<{ tab: chrome.tabs.Tab; platformInfo: SyncDataPlatform }>;
   }) => {
     setIsProcessing(false);
+    if (response?.error) {
+      const message = response.message || "授权校验失败，请重新登录后再发布";
+      setNotice(message);
+      setErrors((prev) => [...prev, message]);
+      return;
+    }
     setNotice(chrome.i18n.getMessage("publishComplete"));
 
     // 存储返回的 tabs 数据
