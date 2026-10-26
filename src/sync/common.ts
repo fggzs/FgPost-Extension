@@ -46,6 +46,8 @@ export interface FileData {
   url: string;
   type?: string;
   size?: number;
+  /** 本地文件在 IndexedDB 中的 id，注入前会被解析成 blob URL */
+  fileId?: string;
 }
 
 export interface ArticleData {
@@ -209,6 +211,94 @@ export async function createTabsForPlatforms(data: SyncData) {
   return tabs;
 }
 
+function collectFileIds(value: unknown, ids: Set<string>): void {
+  if (!value || typeof value !== "object") return;
+  if (Array.isArray(value)) {
+    for (const item of value) collectFileIds(item, ids);
+    return;
+  }
+  const record = value as Record<string, unknown>;
+  if (typeof record.fileId === "string" && record.fileId) {
+    ids.add(record.fileId);
+  }
+  for (const key of Object.keys(record)) {
+    collectFileIds(record[key], ids);
+  }
+}
+
+function replaceFileUrls(value: unknown, urls: Record<string, string>): unknown {
+  if (!value || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map((item) => replaceFileUrls(item, urls));
+  const record = value as Record<string, unknown>;
+  const next: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(record)) {
+    next[key] = replaceFileUrls(item, urls);
+  }
+  if (typeof record.fileId === "string" && urls[record.fileId]) {
+    next.url = urls[record.fileId];
+  }
+  return next;
+}
+
+/**
+ * 本地文件不随消息传输，注入前在目标页里按块取回并生成 blob URL。
+ * 生成后的 data 与原结构一致，各平台实现仍然按 fetch(file.url) 使用。
+ */
+async function resolveLocalFiles(tabId: number, data: SyncData): Promise<SyncData> {
+  const ids = new Set<string>();
+  collectFileIds(data, ids);
+  if (ids.size === 0) return data;
+
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (fileIds: string[]) => {
+        const decode = (input: string) => {
+          const binary = atob(input);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i += 1) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          return bytes;
+        };
+
+        const urls: Record<string, string> = {};
+        for (const fileId of fileIds) {
+          const parts: BlobPart[] = [];
+          let type = "";
+          let index = 0;
+          try {
+            for (;;) {
+              const response = await chrome.runtime.sendMessage({
+                action: "FG_FILE_CHUNK",
+                fileId,
+                index,
+              });
+              if (!response || response.error) break;
+              if (response.type) type = response.type;
+              if (response.chunk) parts.push(decode(response.chunk));
+              if (response.done) break;
+              index += 1;
+            }
+            if (parts.length > 0) {
+              urls[fileId] = URL.createObjectURL(new Blob(parts, { type }));
+            }
+          } catch {
+            // 单个文件失败不影响其他文件
+          }
+        }
+        return urls;
+      },
+      args: [Array.from(ids)],
+    });
+    const urls = (result?.result ?? {}) as Record<string, string>;
+    return replaceFileUrls(data, urls) as SyncData;
+  } catch (error) {
+    console.warn("解析本地文件失败", error);
+    return data;
+  }
+}
+
 export async function injectScriptsToTabs(
   tabs: { tab: chrome.tabs.Tab; platformInfo: SyncDataPlatform }[],
   data: SyncData,
@@ -220,12 +310,13 @@ export async function injectScriptsToTabs(
       chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
         if (tabId === tab.id && info.status === "complete") {
           chrome.tabs.onUpdated.removeListener(listener);
-          getPlatformInfo(platform.name).then((info) => {
+          getPlatformInfo(platform.name).then(async (info) => {
             if (info) {
+              const resolved = await resolveLocalFiles(tab.id, data);
               chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: info.injectFunction,
-                args: [data],
+                args: [resolved],
               });
             }
           });

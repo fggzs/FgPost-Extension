@@ -7,6 +7,7 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { refreshAccountInfoMap, refreshAllAccountInfo } from "~sync/account";
 import type { AccountInfo } from "~sync/common";
+import { publicMessage } from "~utils/text";
 
 const storage = new Storage({
   area: "local",
@@ -192,7 +193,7 @@ const RefreshAccounts = () => {
                               <ExternalLink className="w-4 h-4" />
                             </a>
                           </div>
-                          {error && <div className="mt-1 text-sm text-red-500">{error}</div>}
+                          {error && <div className="mt-1 text-sm text-red-500">{publicMessage(error)}</div>}
                         </div>
                       </div>
                       {account ? (

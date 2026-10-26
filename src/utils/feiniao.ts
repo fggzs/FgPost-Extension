@@ -1,5 +1,5 @@
 /**
- * 飞鸟 SDK（cryptoType=3）TypeScript 实现
+ * 授权服务 SDK（cryptoType=3）TypeScript 实现
  * 协议：AES-192-CBC 加密请求体 -> RSA(PKCS1v1.5) 加密 AES 密钥 -> 服务端返回密文
  * 说明：服务端对 rsa_api_list 的接口使用 RSA 私钥加密 AES 密钥，客户端用公钥做模幂还原
  */
@@ -7,6 +7,9 @@
 import { aesCbcDecrypt, aesCbcEncrypt } from "./aes";
 
 export const FEINIAO_APP_WEB = "http://fnyz.aiwenshu.top/Api?AppId=10008";
+
+/** 单次授权服务接口请求超时（毫秒） */
+const FEINIAO_REQUEST_TIMEOUT_MS = 12000;
 
 const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDJzr0s7c1TAF5rTS2USzfqvJwD
@@ -267,15 +270,29 @@ async function request(session: FeiniaoSession, param: Record<string, unknown>):
   const a = await aesEncrypt(requestKey, JSON.stringify(payload));
   const b = rsaEncrypt(requestKey);
 
-  const response = await fetch(FEINIAO_APP_WEB, {
-    method: "POST",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      Token: session.token || "",
-    },
-    body: JSON.stringify({ a, b }),
-  });
+  // 加超时：授权服务接口不可达时不能把发布流程和无网络请求一起挂死
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FEINIAO_REQUEST_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(FEINIAO_APP_WEB, {
+      method: "POST",
+      headers: {
+        Accept: "application/json, text/plain, */*",
+        "Content-Type": "application/json",
+        Token: session.token || "",
+      },
+      body: JSON.stringify({ a, b }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("授权服务器连接超时，请检查网络后重试");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new Error(`请求失败，状态码：${response.status}`);

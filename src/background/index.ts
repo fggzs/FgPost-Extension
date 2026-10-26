@@ -7,6 +7,7 @@ import {
   createTabsForPlatforms,
   getPlatformInfos,
 } from "~sync/common";
+import { pruneFiles, readFileChunk } from "~utils/file-store";
 import QuantumEntanglementKeepAlive from "../utils/keep-alive";
 import { linkExtensionMessageHandler, starter } from "./services/api";
 import { ensureAuthorized, feiniaoMessageHandler } from "./services/feiniao";
@@ -21,6 +22,9 @@ import { trustDomainMessageHandler } from "./services/trust-domain";
 const storage = new Storage({
   area: "local",
 });
+
+// 扩展启动时清理过期的临时文件
+void pruneFiles();
 
 async function initDefaultTrustedDomains() {
   const trustedDomains = await storage.get<Array<{ id: string; domain: string }>>("trustedDomains");
@@ -77,22 +81,33 @@ const defaultMessageHandler = (request, _sender, sendResponse) => {
     });
     return true;
   }
+  if (request.action === "FG_FILE_CHUNK") {
+    readFileChunk(String(request.fileId ?? ""), Number(request.index ?? 0))
+      .then((result) => sendResponse(result ?? { error: "本地文件已失效，请重新选择文件" }))
+      .catch((error) => sendResponse({ error: error instanceof Error ? error.message : String(error) }));
+    return true;
+  }
   if (request.action === "MULTIPOST_EXTENSION_PUBLISH") {
     (async () => {
-      const auth = await ensureAuthorized();
-      if (!auth.ok) {
-        sendResponse({ error: "NOT_AUTHORIZED", message: auth.message });
-        return;
+      try {
+        const auth = await ensureAuthorized();
+        if (!auth.ok) {
+          sendResponse({ error: "NOT_AUTHORIZED", message: auth.message });
+          return;
+        }
+        const data = request.data as SyncData;
+        currentSyncData = data;
+        sendResponse({ status: "received", extensionId: chrome.runtime.id });
+        currentPublishPopup = await chrome.windows.create({
+          url: chrome.runtime.getURL("tabs/publish.html"),
+          type: "popup",
+          width: 800,
+          height: 600,
+        });
+      } catch (error) {
+        // 兜底响应，避免前端一直等不到结果
+        sendResponse({ error: "PUBLISH_FAILED", message: error instanceof Error ? error.message : String(error) });
       }
-      const data = request.data as SyncData;
-      currentSyncData = data;
-      sendResponse({ status: "received", extensionId: chrome.runtime.id });
-      currentPublishPopup = await chrome.windows.create({
-        url: chrome.runtime.getURL("tabs/publish.html"),
-        type: "popup",
-        width: 800,
-        height: 600,
-      });
     })();
     return true;
   }
@@ -138,17 +153,17 @@ const defaultMessageHandler = (request, _sender, sendResponse) => {
   }
   if (request.action === "MULTIPOST_EXTENSION_PUBLISH_NOW") {
     (async () => {
-      const auth = await ensureAuthorized();
-      if (!auth.ok) {
-        sendResponse({ error: "NOT_AUTHORIZED", message: auth.message });
-        return;
-      }
-      const data = request.data as SyncData;
-      if (!Array.isArray(data?.platforms) || data.platforms.length === 0) {
-        sendResponse({ tabs: [] });
-        return;
-      }
       try {
+        const auth = await ensureAuthorized();
+        if (!auth.ok) {
+          sendResponse({ error: "NOT_AUTHORIZED", message: auth.message });
+          return;
+        }
+        const data = request.data as SyncData;
+        if (!Array.isArray(data?.platforms) || data.platforms.length === 0) {
+          sendResponse({ tabs: [] });
+          return;
+        }
         const tabs = await createTabsForPlatforms(data);
         // await injectScriptsToTabs(tabs, data);
 
@@ -177,10 +192,9 @@ const defaultMessageHandler = (request, _sender, sendResponse) => {
           })),
         });
       } catch (error) {
-        // Do not sendResponse here: the publish popup's handlePublishComplete treats ANY
-        // callback response as "publish complete", so an error payload would be mis-read as success.
-        // Preserve original behavior (log only); success path above sends the tabs response.
         console.error("创建标签页或分组时出错:", error);
+        // 带上 error 字段，发布页会据此显示失败原因而不是误判为“发布完成”
+        sendResponse({ error: "PUBLISH_FAILED", message: error instanceof Error ? error.message : String(error) });
       }
     })();
     return true;

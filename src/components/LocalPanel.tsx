@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { putFile } from "~utils/file-store";
+import { publicMessage } from "~utils/text";
 
 type ContentType = "DYNAMIC" | "VIDEO";
 
@@ -32,27 +34,38 @@ interface LocalFile {
   name: string;
   type: string;
   size: number;
-  /** data URL，发布链路通过 fetch 读取 */
-  url: string;
+  /** 本地文件在 IndexedDB 中的 id，发布时按块注入目标页 */
+  fileId: string;
+  /** 仅用于界面预览 */
+  previewUrl?: string;
 }
 
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const MAX_IMAGE_TOTAL_BYTES = 30 * 1024 * 1024;
-const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
-
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(reader.error ?? new Error("读取文件失败"));
-    reader.readAsDataURL(file);
-  });
-}
+// 对齐抖音创作者平台：图片单张 20MB，视频 1GB
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_IMAGE_TOTAL_BYTES = 200 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 1024 * 1024 * 1024;
 
 function formatSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${bytes} B`;
+}
+
+/** 给消息请求加超时，避免后台卡住时界面一直没有反馈 */
+function withTimeout<T>(task: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+    task.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 export default function LocalPanel({ compact = false }: LocalPanelProps) {
@@ -68,6 +81,26 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
   const [video, setVideo] = useState<LocalFile | null>(null);
   const [notice, setNotice] = useState("");
   const [isBusy, setIsBusy] = useState(false);
+  const previews = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const store = previews.current;
+    return () => {
+      for (const url of store) {
+        URL.revokeObjectURL(url);
+      }
+      store.clear();
+    };
+  }, []);
+
+  const releasePreviews = (items: LocalFile[]) => {
+    for (const item of items) {
+      if (item.previewUrl) {
+        URL.revokeObjectURL(item.previewUrl);
+        previews.current.delete(item.previewUrl);
+      }
+    }
+  };
 
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authUser, setAuthUser] = useState("");
@@ -75,6 +108,7 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
   const [authNotice, setAuthNotice] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
   const [account, setAccount] = useState<{ username: string; vipTime?: string } | null>(null);
+  const [accountChecked, setAccountChecked] = useState(false);
 
   const loadPlatforms = useCallback(async (silent = false) => {
     if (!silent) {
@@ -130,6 +164,8 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
       }
     } catch {
       setAccount(null);
+    } finally {
+      setAccountChecked(true);
     }
   }, []);
 
@@ -214,6 +250,8 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
     setContentType(nextType);
     setSelected([]);
     setNotice("");
+    releasePreviews(images);
+    releasePreviews(video ? [video] : []);
     setImages([]);
     setVideo(null);
   };
@@ -237,7 +275,10 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
         break;
       }
       total += file.size;
-      picked.push({ name: file.name, type: file.type, size: file.size, url: await readAsDataUrl(file) });
+      const meta = await putFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      previews.current.add(previewUrl);
+      picked.push({ name: meta.name, type: meta.type, size: meta.size, fileId: meta.id, previewUrl });
     }
     if (picked.length > 0) {
       setImages((prev) => [...prev, ...picked]);
@@ -256,11 +297,23 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
       return;
     }
     setNotice("");
-    setVideo({ name: file.name, type: file.type, size: file.size, url: await readAsDataUrl(file) });
+    const meta = await putFile(file);
+    if (video?.previewUrl) {
+      URL.revokeObjectURL(video.previewUrl);
+      previews.current.delete(video.previewUrl);
+    }
+    setVideo({ name: meta.name, type: meta.type, size: meta.size, fileId: meta.id });
   };
 
   const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+    setImages((prev) => {
+      const target = prev[index];
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+        previews.current.delete(target.previewUrl);
+      }
+      return prev.filter((_, itemIndex) => itemIndex !== index);
+    });
   };
 
   const refreshAccounts = async () => {
@@ -280,6 +333,19 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
   };
 
   const handlePublish = async () => {
+    // 未登录时不发请求，直接把原因和入口给到用户
+    if (!accountChecked) {
+      setNotice("正在读取登录状态，请稍候再试");
+      return;
+    }
+    if (!account) {
+      const reason = authNotice || "未登录，请先登录后再发布";
+      setNotice(reason);
+      // 切到“我的”页并同步提示，避免用户以为点击没反应
+      setAuthNotice(reason);
+      setView("me");
+      return;
+    }
     if (selected.length === 0) {
       setNotice("请先选择至少一个平台");
       return;
@@ -308,9 +374,10 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
 
     const imageFiles = images.map((item) => ({
       name: item.name,
-      url: item.url,
+      url: "",
       type: item.type,
       size: item.size,
+      fileId: item.fileId,
     }));
 
     const data =
@@ -320,9 +387,10 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
             content: content.trim(),
             video: {
               name: video.name,
-              url: video.url,
+              url: "",
               type: video.type,
               size: video.size,
+              fileId: video.fileId,
             },
             tags: [],
           }
@@ -334,16 +402,20 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
           };
 
     setIsBusy(true);
-    setNotice("");
+    setNotice("正在校验发布权限…");
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: "MULTIPOST_EXTENSION_PUBLISH",
-        data: {
-          platforms: targetPlatforms,
-          isAutoPublish: true,
-          data,
-        },
-      });
+      const response = await withTimeout(
+        chrome.runtime.sendMessage({
+          action: "MULTIPOST_EXTENSION_PUBLISH",
+          data: {
+            platforms: targetPlatforms,
+            isAutoPublish: true,
+            data,
+          },
+        }),
+        20000,
+        "授权校验超时，请检查网络后重试",
+      );
       if (response?.error) {
         throw new Error(response.message || "授权校验失败，请重新登录");
       }
@@ -517,7 +589,7 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
                         <div
                           key={`${item.name}-${index}`}
                           className="relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200">
-                          <img src={item.url} alt={item.name} className="h-full w-full object-cover" />
+                          <img src={item.previewUrl} alt={item.name} className="h-full w-full object-cover" />
                           <button
                             type="button"
                             onClick={() => removeImage(index)}
@@ -532,7 +604,7 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
               ) : (
                 <div>
                   <span className="mb-1 block text-xs font-medium text-gray-600">
-                    视频（本地文件，不超过 {formatSize(MAX_VIDEO_BYTES)}）
+                    视频（本地文件，不超过 {formatSize(MAX_VIDEO_BYTES)}，文件越大准备时间越久）
                   </span>
                   <input
                     type="file"
@@ -569,7 +641,7 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
               {isBusy ? "正在提交…" : "开始发布"}
             </button>
 
-            {notice && <p className="mt-2 text-xs text-gray-600">{notice}</p>}
+            {notice && <p className="mt-2 text-xs text-gray-600">{publicMessage(notice)}</p>}
           </>
         ) : view === "account" ? (
           <>
@@ -619,7 +691,7 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
               className="mt-4 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 disabled:opacity-50">
               刷新全部账号状态
             </button>
-            {notice && <p className="mt-2 text-xs text-gray-600">{notice}</p>}
+            {notice && <p className="mt-2 text-xs text-gray-600">{publicMessage(notice)}</p>}
           </>
         ) : (
           <>
@@ -697,12 +769,9 @@ export default function LocalPanel({ compact = false }: LocalPanelProps) {
                   className="mt-4 w-full rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50">
                   {authBusy ? "处理中…" : authMode === "login" ? "登录" : "注册并登录"}
                 </button>
-                <p className="mt-2 text-[11px] text-gray-400">
-                  账号由飞鸟授权系统提供，注册后可直接登录；设备码已绑定本浏览器。
-                </p>
               </>
             )}
-            {authNotice && <p className="mt-2 text-xs text-gray-600">{authNotice}</p>}
+            {authNotice && <p className="mt-2 text-xs text-gray-600">{publicMessage(authNotice)}</p>}
           </>
         )}
       </div>

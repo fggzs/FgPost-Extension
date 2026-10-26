@@ -15,6 +15,7 @@ import {
   type VideoData,
   injectScriptsToTabs,
 } from "~sync/common";
+import { publicMessage } from "~utils/text";
 
 const storage = new Storage({
   area: "local",
@@ -151,6 +152,10 @@ export default function Publish() {
   }
 
   const processFile = async (file: FileData) => {
+    // 本地文件在注入目标页时才按块重建，这里保持原样，避免用空 url 发起请求
+    if (file.fileId) {
+      return file;
+    }
     try {
       const response = await fetch(file.url);
       const blob = await response.blob();
@@ -595,7 +600,7 @@ export default function Publish() {
             className={`w-full ${isProcessing ? "bg-green-500" : ""}`}
             size="sm"
           />
-          {notice && <p className="text-sm text-center text-muted-foreground">{notice}</p>}
+          {notice && <p className="text-sm text-center text-muted-foreground">{publicMessage(notice)}</p>}
 
           {/* 调试信息 */}
           {/* <div className="text-xs text-center text-gray-400">
@@ -607,7 +612,7 @@ export default function Publish() {
               <p className="text-sm text-center text-muted-foreground">{chrome.i18n.getMessage("errorMessages")}</p>
               <ul className="space-y-2">
                 {errors.map((error, index) => (
-                  <li key={index}>{error}</li>
+                  <li key={index}>{publicMessage(error)}</li>
                 ))}
               </ul>
             </div>

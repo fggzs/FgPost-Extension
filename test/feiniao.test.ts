@@ -1,5 +1,5 @@
 /**
- * 飞鸟 SDK 协议自测（Node 24 直接运行：node --experimental-strip-types test/feiniao.test.ts）
+ * 授权服务 SDK 协议自测（Node 24 直接运行：node --experimental-strip-types test/feiniao.test.ts）
  * 只验证加解密通道，不涉及账号密码。
  */
 import { initSession } from "../src/utils/feiniao.ts";

@@ -102,7 +102,7 @@ async function doLogout(): Promise<void> {
     try {
       await logoutUser(session);
     } catch (error) {
-      console.warn("飞鸟退出登录接口失败，已清理本地状态", error);
+      console.warn("授权服务退出登录接口失败，已清理本地状态", error);
     }
   }
   await clearSession();
